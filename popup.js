@@ -197,7 +197,7 @@ function setupEasterEgg() {
       gameTabEnabled = true;
       chrome.storage.local.set({ gameTabEnabled: true });
       showGameTab();
-      showToast('🎮 게임 카테고리가 추가되었습니다!');
+      showToast('게임 카테고리가 추가되었습니다!');
     }
   });
 }

@@ -124,7 +124,7 @@ function checkSudoku() {
   if (state.length !== 81) return;
   grid.querySelectorAll('.sudoku-cell').forEach(c => c.classList.remove('error', 'conflict'));
   if (state === currentSudokuSolution) {
-    msg.textContent = '정답입니다! 🎉';
+    msg.innerHTML = '정답입니다! <img class="emoji-icon" src="img/emoji/1f389.svg" alt="">';
     msg.className = 'sudoku-message success';
     return;
   }

@@ -15,6 +15,13 @@ let rows = 9, cols = 9, mineCount = 10;
 let gameOver = false;
 let initialized = false;
 
+const EMOJI_SRC = {
+  bomb: 'img/emoji/1f4a3.svg',
+  flag: 'img/emoji/1f6a9.svg',
+  boom: 'img/emoji/1f4a5.svg',
+  party: 'img/emoji/1f389.svg'
+};
+
 function getDifficulty() {
   const el = document.querySelector('input[name="minesweeper-diff"]:checked');
   return (el && el.value) || 'easy';
@@ -101,7 +108,7 @@ function checkWin() {
   for (let i = 0; i < total; i++) if (revealed[i] && grid[i] !== -1) revealedSafe++;
   if (revealedSafe === total - mineCount) {
     gameOver = true;
-    showResultOverlay('승리! \uD83C\uDF89');
+    showResultOverlay('승리!', EMOJI_SRC.party);
   }
 }
 
@@ -123,7 +130,7 @@ function render() {
       cell.classList.add('revealed');
       if (grid[i] === -1) {
         cell.classList.add('mine');
-        cell.textContent = '💣';
+        cell.innerHTML = '<img class=\"emoji-icon\" src=\"' + EMOJI_SRC.bomb + '\" alt=\"\">';
       } else if (grid[i] === 0) {
         cell.classList.add('empty');
       } else {
@@ -132,7 +139,7 @@ function render() {
     } else {
       if (flagged[i]) {
         cell.classList.add('flagged');
-        cell.textContent = '🚩';
+        cell.innerHTML = '<img class=\"emoji-icon\" src=\"' + EMOJI_SRC.flag + '\" alt=\"\">';
       }
       cell.addEventListener('click', (e) => {
         if (document.getElementById('minesweeper-flag')?.checked) toggleFlag(i);
@@ -147,16 +154,26 @@ function render() {
 }
 
 function showGameOverOverlay() {
-  showResultOverlay('지뢰! \uD83D\uDCA5');
+  showResultOverlay('지뢰!', EMOJI_SRC.boom);
 }
 
-function showResultOverlay(text) {
+function showResultOverlay(text, iconSrc) {
   var overlay = document.getElementById('minesweeper-overlay');
   if (!overlay) return;
   overlay.innerHTML = '';
   var p = document.createElement('p');
   p.className = 'minesweeper-overlay-msg';
   p.textContent = text;
+  if (iconSrc) {
+    var img = document.createElement('img');
+    img.className = 'emoji-icon';
+    img.src = iconSrc;
+    img.alt = '';
+    img.style.width = '18px';
+    img.style.height = '18px';
+    img.style.marginLeft = '6px';
+    p.appendChild(img);
+  }
   var btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'minesweeper-overlay-btn';

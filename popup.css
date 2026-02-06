@@ -181,9 +181,30 @@ textarea:focus-visible {
 }
 
 .grid-item-icon {
-  font-size: 2rem;
   line-height: 1;
   display: block;
+}
+
+/* 글자 아이콘(#, %) – 이미지와 비슷한 시각적 크기 */
+.grid-item-icon-text {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.grid-item-icon-img {
+  width: 32px;
+  height: 32px;
+  display: block;
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.tab-emoji {
+  width: 16px;
+  height: 16px;
+  vertical-align: -3px;
+  margin-right: 4px;
 }
 
 .grid-item-label {
@@ -1038,10 +1059,13 @@ select {
   transform: scaleX(0);
 }
 .memory-card-back::before {
-  content: '\1F0A0'; /* 🂠 카드 뒷면 (인코딩 무관) */
-  font-size: 28px;
+  content: none;
+}
+
+.memory-card-back-img {
+  width: 28px;
+  height: 28px;
   opacity: 0.95;
-  font-family: "Segoe UI Emoji", "Segoe UI Symbol", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
 }
 .memory-card-front {
   background: #f6f8fa;
@@ -1148,6 +1172,13 @@ select {
   cursor: pointer;
   box-sizing: border-box;
   aspect-ratio: 1;
+}
+
+.emoji-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+  object-fit: contain;
 }
 .minesweeper-cell.revealed { cursor: default; }
 .minesweeper-cell.revealed.empty { background: #e8ecf0; color: #57606a; }

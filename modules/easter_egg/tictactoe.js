@@ -95,7 +95,7 @@ function humanMove(i) {
   const msg = document.getElementById('tictactoe-message');
   if (win) {
     render();
-    if (msg) msg.textContent = win === human ? '당신 승리! 🎉' : win === 'T' ? '무승부!' : '';
+    if (msg) msg.innerHTML = win === human ? '당신 승리! <img class="emoji-icon" src="img/emoji/1f389.svg" alt="">' : win === 'T' ? '무승부!' : '';
     return;
   }
   render();

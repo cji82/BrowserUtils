@@ -85,7 +85,7 @@ function move(i) {
 function checkWin() {
   const win = tiles.slice(0, 15).every((v, i) => v === i + 1) && tiles[15] === 0;
   const msg = document.getElementById('puzzle15-message');
-  if (win && msg) msg.textContent = '완성! 🎉';
+  if (win && msg) msg.innerHTML = '완성! <img class="emoji-icon" src="img/emoji/1f389.svg" alt="">';
 }
 
 function saveState() {

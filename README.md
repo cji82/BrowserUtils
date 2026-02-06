@@ -89,6 +89,7 @@ BrowserUtils/
 ├── background.js      # 서비스 워커
 ├── content.js         # 페이지 주입 스크립트 (요소 선택, 컬러 피커 등)
 ├── icons/             # 확장 아이콘 (16/32/64/128)
+├── img/emoji/         # UI·게임용 이모지 아이콘 (Twemoji SVG, 로컬)
 ├── libs/              # 서드파티 (html2canvas, qrcode 등)
 ├── modules/           # 기능별 모듈 (스크린샷, 쿠키, 인코더 등)
 │   └── easter_egg/    # 게임 등 추가 기능
@@ -102,4 +103,4 @@ BrowserUtils/
 ## 라이선스
 
 이 프로젝트의 라이선스는 저장소에 별도로 명시된 경우 그에 따릅니다.  
-아이콘 등 외부 리소스는 각각의 출처·라이선스를 확인해 주세요.
+팝업·게임 아이콘은 [Twemoji](https://github.com/twitter/twemoji)(CC-BY 4.0)를 사용합니다. 기타 외부 리소스는 각각의 출처·라이선스를 확인해 주세요.

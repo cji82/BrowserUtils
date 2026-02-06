@@ -8,8 +8,18 @@ let revealed = [];
 let matched = [];
 let initialized = false;
 
-// Emoji code points only (ASCII source = no encoding issues)
-const EMOJIS = [0x1F436, 0x1F431, 0x1F42D, 0x1F439, 0x1F430, 0x1F98A, 0x1F43B, 0x1F43C, 0x1F428, 0x1F42F, 0x1F981, 0x1F42E, 0x1F437, 0x1F438, 0x1F435, 0x1F414, 0x1F427, 0x1F426, 0x1F424, 0x1F984, 0x1F419, 0x1F98B, 0x1F40C, 0x1F41E, 0x1F980, 0x1F420, 0x1F41F, 0x1F42C, 0x1F433, 0x1F40B, 0x1F988].map(function(c) { return String.fromCodePoint(c); });
+// Use Twemoji assets (OS independent)
+const EMOJI_CODES = [
+  '1f436','1f431','1f42d','1f439','1f430','1f98a','1f43b','1f43c',
+  '1f428','1f42f','1f981','1f42e','1f437','1f438','1f435','1f414',
+  '1f427','1f426','1f424','1f984','1f419','1f98b','1f40c','1f41e',
+  '1f980','1f420','1f41f','1f42c','1f433','1f40b','1f988'
+];
+const EMOJI_BASE = 'img/emoji/';
+const PARTY_SRC = EMOJI_BASE + '1f389.svg';
+const CARD_BACK_SRC = EMOJI_BASE + '1f0a0.svg';
+
+function emojiSrc(code) { return EMOJI_BASE + code + '.svg'; }
 
 function getDifficulty() {
   const el = document.querySelector('input[name="memory-diff"]:checked');
@@ -17,8 +27,8 @@ function getDifficulty() {
 }
 
 function buildDeck(pairs) {
-  const em = EMOJIS.slice(0, pairs);
-  const deck = [...em, ...em].map((v, i) => ({ id: i, emoji: v }));
+  const em = EMOJI_CODES.slice(0, pairs);
+  const deck = [...em, ...em].map((v, i) => ({ id: i, code: v }));
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -52,15 +62,28 @@ function render() {
     inner.className = 'memory-card-inner';
     const back = document.createElement('span');
     back.className = 'memory-card-back';
+    const backImg = document.createElement('img');
+    backImg.className = 'memory-card-back-img';
+    backImg.src = CARD_BACK_SRC;
+    backImg.alt = '';
+    back.appendChild(backImg);
     const front = document.createElement('span');
     front.className = 'memory-card-front';
-    front.textContent = c.emoji;
+    const img = document.createElement('img');
+    img.className = 'emoji-icon';
+    img.src = emojiSrc(c.code);
+    img.alt = '';
+    img.style.width = '22px';
+    img.style.height = '22px';
+    front.appendChild(img);
     inner.appendChild(back);
     inner.appendChild(front);
     cell.appendChild(inner);
     container.appendChild(cell);
   });
-  if (matched.length === cards.length && cards.length > 0 && msg) msg.textContent = '모두 맞췄어요! ' + String.fromCodePoint(0x1F389);
+  if (matched.length === cards.length && cards.length > 0 && msg) {
+    msg.innerHTML = '모두 맞췄어요! <img class=\"emoji-icon\" src=\"' + PARTY_SRC + '\" alt=\"\">';
+  }
   else if (msg && revealed.length === 0 && matched.length === 0) msg.textContent = '';
 }
 
@@ -70,7 +93,7 @@ function flip(i) {
   render();
   if (revealed.length === 2) {
     const [a, b] = revealed;
-    if (cards[a].emoji === cards[b].emoji) {
+    if (cards[a].code === cards[b].code) {
       matched.push(a, b);
       revealed = [];
       render();
@@ -86,7 +109,7 @@ function flip(i) {
 
 function saveState() {
   chrome.storage.local.set({
-    memoryCards: JSON.stringify(cards.map(c => c.emoji)),
+    memoryCards: JSON.stringify(cards.map(c => c.code)),
     memoryMatched: JSON.stringify(matched),
     memoryRevealed: JSON.stringify(revealed)
   });
@@ -96,10 +119,10 @@ function loadState(cb) {
   chrome.storage.local.get(['memoryCards', 'memoryMatched', 'memoryRevealed'], function(data) {
     if (data.memoryCards && data.memoryMatched) {
       try {
-        const emojis = JSON.parse(data.memoryCards);
-        var valid = Array.isArray(emojis) && emojis.length > 0 && emojis.every(function(e) { return EMOJIS.indexOf(e) !== -1; });
+        const codes = JSON.parse(data.memoryCards);
+        var valid = Array.isArray(codes) && codes.length > 0 && codes.every(function(code) { return EMOJI_CODES.indexOf(code) !== -1; });
         if (!valid) { cb(false); return; }
-        cards = emojis.map(function(emoji, id) { return { id: id, emoji: emoji }; });
+        cards = codes.map(function(code, id) { return { id: id, code: code }; });
         matched = JSON.parse(data.memoryMatched);
         revealed = data.memoryRevealed ? JSON.parse(data.memoryRevealed) : [];
         cb(true);
