@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "BrowserUtils - 개발자 도구 모음",
+  "version": "1.0.0",
+  "description": "개발에 유용한 다양한 도구들을 통합한 확장 프로그램",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "tabs",
+    "cookies",
+    "scripting",
+    "webRequest",
+    "webNavigation",
+    "downloads",
+    "tabCapture",
+    "desktopCapture"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "64": "icons/icon64.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "64": "icons/icon64.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["libs/*", "clip-recorder.html", "clip-recorder.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

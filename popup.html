@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrowserUtils</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header" id="main-header">
+      <button type="button" class="back-btn" id="back-from-feature" title="뒤로">←</button>
+      <h1 class="title">BrowserUtils</h1>
+      <nav class="tabs">
+        <button type="button" class="tab-btn active" data-tab="media">미디어</button>
+        <button type="button" class="tab-btn" data-tab="text">텍스트</button>
+        <button type="button" class="tab-btn" data-tab="dev">개발</button>
+        <button type="button" class="tab-btn" data-tab="utils">기타</button>
+        <span id="game-tab-wrap" class="game-tab-wrap" style="display:none;">
+          <button type="button" class="tab-btn" data-tab="game">🎮 게임</button>
+          <button type="button" class="tab-btn tab-btn-delete-game" id="game-tab-delete" title="게임 카테고리 삭제">×</button>
+        </span>
+        <button type="button" class="tab-btn tab-btn-help" data-tab="help" title="사용법 안내">?</button>
+      </nav>
+    </header>
+
+    <main class="content">
+      <div class="tab-panel active" id="panel-media">
+        <div class="grid-view">
+          <button type="button" class="grid-item" data-feature-id="screenshot"><span class="grid-item-icon">📷</span><span class="grid-item-label">스크린샷</span></button>
+          <button type="button" class="grid-item" data-feature-id="colorpicker"><span class="grid-item-icon">🎨</span><span class="grid-item-label">컬러 피커</span></button>
+          <button type="button" class="grid-item" data-feature-id="image-optimizer"><span class="grid-item-icon">🖼️</span><span class="grid-item-label">이미지 최적화</span></button>
+          <button type="button" class="grid-item" data-feature-id="image-to-base64"><span class="grid-item-icon">📄</span><span class="grid-item-label">이미지 Base64</span></button>
+          <button type="button" class="grid-item" data-feature-id="image-extract"><span class="grid-item-icon">🪄</span><span class="grid-item-label">이미지 추출</span></button>
+          <button type="button" class="grid-item" data-feature-id="clip-record"><span class="grid-item-icon">🎞️</span><span class="grid-item-label">화면 녹화</span></button>
+        </div>
+        <div class="feature-views">
+          <div class="feature-view" data-feature-id="screenshot">
+            <section class="tool-section">
+              <h3>스크린샷</h3>
+              <p class="tool-desc">현재 열린 탭을 캡처해 PNG로 다운로드하거나 클립보드에 복사합니다.</p>
+              <p class="tool-hint"><strong>보이는 영역</strong> 지금 보이는 부분만 · <strong>전체 페이지</strong> 스크롤 포함 한 장 · <strong>영역 선택</strong> 페이지에서 드래그해 영역 지정 후 캡처 (다운로드 또는 클립보드)</p>
+              <div class="btn-group">
+                <button type="button" id="screenshot-visible">보이는 영역</button>
+                <button type="button" id="screenshot-full">전체 페이지</button>
+                <button type="button" id="screenshot-selection">영역 선택</button>
+                <button type="button" id="screenshot-selection-clipboard">영역 선택 (클립보드)</button>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="colorpicker">
+            <section class="tool-section">
+              <h3>컬러 피커</h3>
+              <p class="tool-desc">페이지에서 클릭한 위치의 색상을 HEX, RGB로 확인합니다.</p>
+              <p class="tool-hint">화면에 보이는 픽셀과 동일한 색을 쓰기 위해, 시작 시 뷰포트를 한 번 캡처한 뒤 그 이미지에서 색을 읽습니다. 「컬러 선택」 클릭 후 잠시 뒤 따라다니는 박스에서 실시간 색상을 확인하고 클릭해 확정하세요. 취소는 <kbd>Esc</kbd>.</p>
+              <button type="button" id="color-picker-btn">컬러 선택</button>
+              <div id="color-preview" class="color-preview"></div>
+              <div class="output-row input-row">
+                <input type="text" id="color-value" class="color-value" readonly placeholder="선택한 색상이 표시됩니다">
+                <button type="button" class="btn-copy" data-copy-target="color-value" title="복사">복사</button>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="image-optimizer">
+            <section class="tool-section">
+              <h3>이미지 최적화</h3>
+              <p class="tool-desc">이미지 파일을 리사이즈·압축해 선택한 포맷(JPEG/PNG/WebP)으로 다운로드합니다.</p>
+              <p class="tool-hint">파일 선택 → 포맷·품질 조절 → 「최적화」 클릭 후 저장 위치 선택. PNG는 무손실입니다.</p>
+              <input type="file" id="image-input" accept="image/*">
+              <div id="image-preview" class="image-preview"></div>
+              <label>포맷: <select id="image-format">
+                <option value="jpeg">JPEG</option>
+                <option value="png">PNG</option>
+                <option value="webp">WebP</option>
+              </select></label>
+              <label class="image-quality-wrap">품질: <input type="range" id="image-quality" min="0.1" max="1" step="0.1" value="0.8"><span id="image-quality-value">0.8</span></label>
+              <button type="button" id="optimize-image">최적화</button>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="image-to-base64">
+            <section class="tool-section">
+              <h3>이미지 → Base64</h3>
+              <p class="tool-desc">이미지 파일을 선택하면 data URL(Base64) 문자열로 변환해 표시합니다.</p>
+              <input type="file" id="image-base64-input" accept="image/*">
+              <label class="label-inout">Base64 결과</label>
+              <div class="output-row textarea-output">
+                <textarea id="image-base64-output" readonly placeholder="선택한 이미지의 data URL"></textarea>
+                <button type="button" class="btn-copy" data-copy-target="image-base64-output" title="복사">복사</button>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="image-extract">
+            <section class="tool-section">
+              <h3>이미지 추출</h3>
+              <p class="tool-desc">선택한 요소 안의 &lt;img&gt;와 CSS 배경 이미지를 모아 링크로 제공합니다.</p>
+              <p class="tool-hint">「요소 선택」을 누르고 페이지에서 원하는 요소를 클릭하세요. data URL도 그대로 표시됩니다.</p>
+              <div class="btn-group">
+                <button type="button" id="image-extract-pick">요소 선택</button>
+                <button type="button" id="image-extract-clear">결과 지우기</button>
+              </div>
+              <div id="image-extract-target" class="image-extract-target">선택된 요소 없음</div>
+              <div id="image-extract-list" class="image-extract-list empty-state">
+                <p>추출된 이미지가 없습니다. 요소를 선택해 주세요.</p>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="clip-record">
+            <section class="tool-section">
+              <h3>화면 녹화 (짧은 클립)</h3>
+              <div id="clip-record-disabled-notice" class="clip-record-disabled-notice" style="display:none;">
+                <p>이 환경에서는 화면 녹화가 제한되어 있습니다. (조직 정책 등) 스크린샷 기능을 이용해 주세요.</p>
+                <button type="button" id="clip-record-retry" class="btn-secondary">기능 다시 시도</button>
+              </div>
+              <p class="tool-desc">현재 탭 화면과 탭 오디오를 짧게 녹화해 WebM 파일로 저장합니다.</p>
+              <p class="tool-hint">DRM 보호 콘텐츠나 브라우저 내장/특수 페이지에서는 녹화가 차단될 수 있습니다. 팝업을 닫지 말고 녹화 시간을 짧게 설정하세요.</p>
+              <div class="clip-controls">
+                <label for="clip-duration">길이(초):</label>
+                <input type="number" id="clip-duration" min="3" max="120" value="10" step="1">
+                <button type="button" id="clip-start">녹화 시작</button>
+                <button type="button" id="clip-stop" disabled>중지</button>
+              </div>
+              <div id="clip-status" class="clip-status">대기 중</div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-text">
+        <div class="grid-view">
+          <button type="button" class="grid-item" data-feature-id="url"><span class="grid-item-icon">🔗</span><span class="grid-item-label">URL 인코더</span></button>
+          <button type="button" class="grid-item" data-feature-id="base64"><span class="grid-item-icon">📝</span><span class="grid-item-label">Base64</span></button>
+          <button type="button" class="grid-item" data-feature-id="json"><span class="grid-item-icon">📋</span><span class="grid-item-label">JSON</span></button>
+          <button type="button" class="grid-item" data-feature-id="text-transform"><span class="grid-item-icon">✏️</span><span class="grid-item-label">텍스트 변환</span></button>
+          <button type="button" class="grid-item" data-feature-id="hash"><span class="grid-item-icon">#</span><span class="grid-item-label">해시</span></button>
+          <button type="button" class="grid-item" data-feature-id="code-minifier"><span class="grid-item-icon">📦</span><span class="grid-item-label">코드 미니파이어</span></button>
+          <button type="button" class="grid-item" data-feature-id="regex-tester"><span class="grid-item-icon">🔍</span><span class="grid-item-label">정규식 테스터</span></button>
+          <button type="button" class="grid-item" data-feature-id="text-diff"><span class="grid-item-icon">📄</span><span class="grid-item-label">Compare</span></button>
+        </div>
+        <div class="feature-views">
+          <div class="feature-view" data-feature-id="url">
+            <section class="tool-section">
+              <h3>URL 인코더/디코더</h3>
+              <p class="tool-desc">URL에 쓸 수 있도록 텍스트를 인코딩하거나, 인코딩된 문자열을 다시 읽기 쉬운 텍스트로 디코딩합니다.</p>
+              <label class="label-inout">입력</label>
+              <textarea id="url-input" placeholder="예: https://example.com/한글 경로"></textarea>
+              <div class="btn-group">
+                <button type="button" id="url-encode">인코드</button>
+                <button type="button" id="url-decode">디코드</button>
+              </div>
+              <label class="label-inout">결과</label>
+              <div class="output-row textarea-output">
+                <textarea id="url-output" readonly placeholder="결과가 여기 표시됩니다"></textarea>
+                <button type="button" class="btn-copy" data-copy-target="url-output" title="복사">복사</button>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="base64">
+            <section class="tool-section">
+              <h3>Base64 인코더/디코더</h3>
+              <p class="tool-desc">텍스트를 Base64 문자열로 인코딩하거나, Base64 문자열을 원문으로 디코딩합니다.</p>
+              <label class="label-inout">입력</label>
+              <textarea id="base64-input" placeholder="인코드할 또는 디코드할 텍스트"></textarea>
+              <div class="btn-group">
+                <button type="button" id="base64-encode">인코드</button>
+                <button type="button" id="base64-decode">디코드</button>
+              </div>
+              <label class="label-inout">결과</label>
+              <div class="output-row textarea-output">
+                <textarea id="base64-output" readonly placeholder="결과가 여기 표시됩니다"></textarea>
+                <button type="button" class="btn-copy" data-copy-target="base64-output" title="복사">복사</button>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="json">
+            <section class="tool-section">
+              <h3>JSON 포맷터</h3>
+              <p class="tool-desc">한 줄 JSON을 보기 좋게 정리하거나, 공백을 줄여 미니파이합니다. 검증으로 문법 오류를 확인할 수 있습니다.</p>
+              <label class="label-inout">입력</label>
+              <textarea id="json-input" placeholder='예: {"name":"value"}'></textarea>
+              <div class="btn-group">
+                <button type="button" id="json-format">포맷</button>
+                <button type="button" id="json-minify">미니파이</button>
+                <button type="button" id="json-validate">검증</button>
+              </div>
+              <label class="label-inout">결과</label>
+              <div class="output-row textarea-output">
+                <textarea id="json-output" readonly placeholder="결과 또는 오류 메시지"></textarea>
+                <button type="button" class="btn-copy" data-copy-target="json-output" title="복사">복사</button>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="text-transform">
+            <section class="tool-section">
+              <h3>텍스트 변환</h3>
+              <p class="tool-desc">영문 대·소문자 변환, CamelCase / snake_case / kebab-case 등 네이밍 형식 변환입니다.</p>
+              <label class="label-inout">입력</label>
+              <textarea id="text-input" placeholder="예: hello world"></textarea>
+              <div class="btn-group">
+                <button type="button" id="text-uppercase">대문자</button>
+                <button type="button" id="text-lowercase">소문자</button>
+                <button type="button" id="text-camelcase">CamelCase</button>
+                <button type="button" id="text-snakecase">snake_case</button>
+                <button type="button" id="text-kebabcase">kebab-case</button>
+              </div>
+              <label class="label-inout">결과</label>
+              <div class="output-row textarea-output">
+                <textarea id="text-output" readonly placeholder="변환 결과"></textarea>
+                <button type="button" class="btn-copy" data-copy-target="text-output" title="복사">복사</button>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="hash">
+            <section class="tool-section">
+              <h3>해시 생성</h3>
+              <p class="tool-desc">입력한 텍스트로 SHA-256 또는 SHA-512 해시 값을 생성합니다.</p>
+              <label class="label-inout">입력</label>
+              <textarea id="hash-input" placeholder="해시할 텍스트"></textarea>
+              <select id="hash-algorithm">
+                <option value="SHA-256">SHA-256</option>
+                <option value="SHA-512">SHA-512</option>
+              </select>
+              <button type="button" id="generate-hash">생성</button>
+              <label class="label-inout">결과</label>
+              <div class="output-row input-row">
+                <input type="text" id="hash-output" class="hash-output" readonly placeholder="해시 값">
+                <button type="button" class="btn-copy" data-copy-target="hash-output" title="복사">복사</button>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="code-minifier">
+            <section class="tool-section">
+              <h3>코드 미니파이어</h3>
+              <p class="tool-desc">미니파이: 한 줄로 압축. 뷰티파이: 줄바꿈·들여쓰기로 읽기 쉽게. 코드 붙여넣기 또는 URL 입력 가능.</p>
+              <label class="label-inout">입력 (코드 붙여넣기 또는 스크립트/스타일 URL)</label>
+              <select id="code-type">
+                <option value="css">CSS</option>
+                <option value="js">JavaScript</option>
+              </select>
+              <textarea id="code-input" placeholder="코드 붙여넣기 또는 https://... 주소"></textarea>
+              <div class="btn-group">
+                <button type="button" id="minify-code">미니파이</button>
+                <button type="button" id="beautify-code">뷰티파이</button>
+              </div>
+              <label class="label-inout">결과</label>
+              <div class="output-row textarea-output">
+                <textarea id="code-output" readonly placeholder="결과"></textarea>
+                <button type="button" class="btn-copy" data-copy-target="code-output" title="복사">복사</button>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="regex-tester">
+            <section class="tool-section">
+              <h3>정규식 테스터</h3>
+              <p class="tool-desc">정규식 패턴과 테스트 문자열로 매칭 결과를 확인합니다.</p>
+              <div class="regex-pattern-row">
+                <label for="regex-pattern">패턴:</label>
+                <button type="button" id="regex-help-btn" class="regex-help-btn" title="패턴 작성 도움말">?</button>
+              </div>
+              <input type="text" id="regex-pattern" placeholder="예: ([0-9]{2,}) 또는 /([0-9]{2,})/g" class="code-input">
+              <label for="regex-flags">플래그:</label>
+              <input type="text" id="regex-flags" placeholder="g, i, m 등 (선택)" maxlength="6">
+              <label for="regex-input">테스트 문자열:</label>
+              <textarea id="regex-input" placeholder="매칭할 문자열"></textarea>
+              <button type="button" id="regex-test-btn">테스트</button>
+              <label class="label-inout">결과</label>
+              <div class="regex-result-tabs">
+                <button type="button" class="regex-tab-btn active" data-regex-tab="list">List</button>
+                <button type="button" class="regex-tab-btn" data-regex-tab="replace">Replace</button>
+                <button type="button" class="regex-tab-btn" data-regex-tab="details">Details</button>
+              </div>
+              <div id="regex-result-list" class="regex-result-panel mono" role="log"></div>
+              <div id="regex-result-replace" class="regex-result-panel regex-result-replace mono" style="display:none;">
+                <label for="regex-replace-input" class="regex-replace-label">교체 문자열:</label>
+                <input type="text" id="regex-replace-input" placeholder="$1, $2 등 그룹 참조 가능" class="code-input">
+                <div id="regex-replace-output" class="regex-replace-output"></div>
+              </div>
+              <div id="regex-result-details" class="regex-result-panel mono" style="display:none;"></div>
+              <div id="regex-help-overlay" class="regex-help-overlay" aria-hidden="true">
+                <div class="regex-help-modal">
+                  <div class="regex-help-header">
+                    <h4>정규식 패턴 작성 규칙</h4>
+                    <button type="button" class="regex-help-close" title="닫기">&times;</button>
+                  </div>
+                  <div class="regex-help-body">
+                    <p><strong>형식</strong> 패턴만 쓰거나 <code>/패턴/플래그</code> (예: <code>/\\d+/g</code>)</p>
+                    <table class="regex-help-table">
+                      <thead><tr><th>패턴</th><th>의미</th></tr></thead>
+                      <tbody>
+                        <tr><td><code>.</code></td><td>임의의 한 문자 (줄바꿈 제외, s 플래그 시 포함)</td></tr>
+                        <tr><td><code>\d</code></td><td>숫자 한 글자 [0-9]</td></tr>
+                        <tr><td><code>\D</code></td><td>숫자 아닌 문자</td></tr>
+                        <tr><td><code>\w</code></td><td>영문·숫자·밑줄 [a-zA-Z0-9_]</td></tr>
+                        <tr><td><code>\W</code></td><td>\w 아닌 문자</td></tr>
+                        <tr><td><code>\s</code></td><td>공백(스페이스, 탭, 줄바꿈 등)</td></tr>
+                        <tr><td><code>\S</code></td><td>공백 아닌 문자</td></tr>
+                        <tr><td><code>[abc]</code></td><td>a, b, c 중 하나</td></tr>
+                        <tr><td><code>[a-z]</code></td><td>a~z 중 하나</td></tr>
+                        <tr><td><code>[^ab]</code></td><td>a, b 제외한 한 문자</td></tr>
+                        <tr><td><code>^</code></td><td>줄(또는 문자열)의 시작 (m 플래그 시 줄마다)</td></tr>
+                        <tr><td><code>$</code></td><td>줄(또는 문자열)의 끝 (m 플래그 시 줄마다)</td></tr>
+                        <tr><td><code>*</code></td><td>앞 요소 0회 이상</td></tr>
+                        <tr><td><code>+</code></td><td>앞 요소 1회 이상</td></tr>
+                        <tr><td><code>?</code></td><td>앞 요소 0회 또는 1회</td></tr>
+                        <tr><td><code>{n}</code></td><td>앞 요소 정확히 n회</td></tr>
+                        <tr><td><code>{n,}</code></td><td>앞 요소 n회 이상</td></tr>
+                        <tr><td><code>{n,m}</code></td><td>앞 요소 n~m회</td></tr>
+                        <tr><td><code>(...)</code></td><td>캡처 그룹 (Replace에서 $1, $2로 참조)</td></tr>
+                        <tr><td><code>(?:...)</code></td><td>캡처 없는 그룹</td></tr>
+                        <tr><td><code>|</code></td><td>또는 (예: a|b)</td></tr>
+                        <tr><td><code>\1, \2</code></td><td>앞선 캡처 그룹과 같은 내용 (역참조)</td></tr>
+                      </tbody>
+                    </table>
+                    <p><strong>플래그</strong> <code>g</code> 전역 매칭(모두 찾기) · <code>i</code> 대소문자 무시 · <code>m</code> 여러 줄(^ $가 줄 단위) · <code>s</code> .이 줄바꿈 포함</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="text-diff">
+            <section class="tool-section">
+              <h3>Compare</h3>
+              <p class="tool-desc">두 텍스트를 줄 단위로 비교해 차이를 표시합니다.</p>
+              <label>
+                <input type="checkbox" id="diff-json-mode"> JSON으로 비교 (포맷 후 비교)
+              </label>
+              <label for="diff-a">텍스트 A:</label>
+              <textarea id="diff-a" placeholder="첫 번째 텍스트"></textarea>
+              <label for="diff-b">텍스트 B:</label>
+              <textarea id="diff-b" placeholder="두 번째 텍스트"></textarea>
+              <div class="btn-group">
+                <button type="button" id="diff-btn">비교</button>
+                <button type="button" id="diff-open-window" title="별도 창에서 크게 보기">크게 보기</button>
+              </div>
+              <label class="label-inout">결과</label>
+              <div id="diff-result" class="diff-result mono" role="log"></div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-dev">
+        <div class="grid-view">
+          <button type="button" class="grid-item" data-feature-id="cookies"><span class="grid-item-icon">🍪</span><span class="grid-item-label">쿠키</span></button>
+          <button type="button" class="grid-item" data-feature-id="storage"><span class="grid-item-icon">💾</span><span class="grid-item-label">스토리지</span></button>
+          <button type="button" class="grid-item" data-feature-id="element-picker"><span class="grid-item-icon">🎯</span><span class="grid-item-label">요소 선택기</span></button>
+          <button type="button" class="grid-item" data-feature-id="network"><span class="grid-item-icon">📡</span><span class="grid-item-label">네트워크 모니터</span></button>
+          <button type="button" class="grid-item" data-feature-id="performance"><span class="grid-item-icon">⚡</span><span class="grid-item-label">성능 메트릭</span></button>
+          <button type="button" class="grid-item" data-feature-id="accessibility"><span class="grid-item-icon">♿</span><span class="grid-item-label">접근성 검사</span></button>
+          <button type="button" class="grid-item" data-feature-id="user-agent"><span class="grid-item-icon">🖥️</span><span class="grid-item-label">User-Agent</span></button>
+          <button type="button" class="grid-item" data-feature-id="url-params"><span class="grid-item-icon">🗂️</span><span class="grid-item-label">URL 파라미터</span></button>
+        </div>
+        <div class="feature-views">
+          <div class="feature-view" data-feature-id="cookies">
+            <section class="tool-section">
+              <h3>쿠키 관리</h3>
+              <p class="tool-desc">현재 탭의 도메인에 저장된 쿠키 목록을 확인·수정·삭제합니다.</p>
+              <p class="tool-hint">확인할 사이트가 열린 탭을 활성화한 뒤 「쿠키 로드」를 누르세요. 항목별 수정·삭제, 새 쿠키 추가가 가능합니다.</p>
+              <button type="button" id="load-cookies">쿠키 로드</button>
+              <div id="cookies-list" class="data-list cookie-storage-list"></div>
+              <div class="add-row">
+                <input type="text" id="new-cookie-name" placeholder="이름">
+                <input type="text" id="new-cookie-value" placeholder="값">
+                <button type="button" id="add-cookie">추가</button>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="storage">
+            <section class="tool-section">
+              <h3>스토리지 관리</h3>
+              <p class="tool-desc">현재 탭의 LocalStorage 또는 SessionStorage 키·값을 확인·수정·삭제합니다.</p>
+              <p class="tool-hint">대상 사이트 탭을 연 상태에서 저장소 종류를 선택한 뒤 「로드」를 누르세요. 항목별 수정·삭제, 새 키 추가가 가능합니다.</p>
+              <select id="storage-type">
+                <option value="local">LocalStorage</option>
+                <option value="session">SessionStorage</option>
+              </select>
+              <button type="button" id="load-storage">로드</button>
+              <div id="storage-list" class="data-list cookie-storage-list"></div>
+              <div class="add-row">
+                <input type="text" id="new-storage-key" placeholder="키">
+                <input type="text" id="new-storage-value" placeholder="값">
+                <button type="button" id="add-storage">추가</button>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="element-picker">
+            <section class="tool-section">
+              <h3>요소 선택기</h3>
+              <p class="tool-desc">페이지에서 클릭한 HTML 요소의 태그, 크기, 스타일 정보를 봅니다.</p>
+              <p class="tool-hint">「요소 선택 모드」 클릭 후 확인할 요소가 있는 페이지에서 해당 요소를 클릭하세요.</p>
+              <button type="button" id="element-picker-btn">요소 선택 모드</button>
+              <div id="element-info" class="element-info"></div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="network">
+            <section class="tool-section">
+              <h3>네트워크 모니터</h3>
+              <p class="tool-desc">확장 사용 중 발생하는 웹 요청(URL, 메서드, 상태)을 목록으로 봅니다.</p>
+              <p class="tool-hint">「모니터 시작」 후 다른 탭·페이지를 사용하면 요청이 쌓입니다. 아래 <strong>요청 목록</strong>에 표시됩니다. 「초기화」로 목록을 비웁니다.</p>
+              <button type="button" id="network-monitor-btn">모니터 시작</button>
+              <button type="button" id="network-monitor-clear">초기화</button>
+              <p class="label-inout">요청 목록</p>
+              <div id="network-requests" class="data-list network-requests-list"></div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="performance">
+            <section class="tool-section">
+              <h3>성능 메트릭</h3>
+              <p class="tool-desc">현재 탭 페이지의 로드 시간, 리소스 개수 등 간단한 성능 수치를 봅니다.</p>
+              <p class="tool-hint">측정할 페이지를 연 탭이 활성화된 상태에서 「측정」을 누르세요.</p>
+              <button type="button" id="performance-btn">측정</button>
+              <div id="performance-metrics" class="data-list"></div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="accessibility">
+            <section class="tool-section">
+              <h3>접근성 검사</h3>
+              <p class="tool-desc">현재 탭 페이지에서 이미지 alt 누락, 레이블 누락 등 접근성 이슈를 검사합니다.</p>
+              <p class="tool-hint">검사할 사이트 탭을 연 뒤 「검사 실행」을 누르세요.</p>
+              <button type="button" id="accessibility-btn">검사 실행</button>
+              <div id="accessibility-results" class="data-list"></div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="user-agent">
+            <section class="tool-section">
+              <h3>User-Agent 파싱</h3>
+              <p class="tool-desc">UA 문자열을 입력하면 브라우저·OS·기기 유형을 요약해 표시합니다.</p>
+              <label for="ua-input">UA 문자열:</label>
+              <textarea id="ua-input" placeholder="비어 있으면 현재 브라우저 UA 사용" class="code-input" rows="3"></textarea>
+              <button type="button" id="ua-parse-btn">파싱</button>
+              <label class="label-inout">결과</label>
+              <div id="ua-result" class="ua-result mono"></div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="url-params">
+            <section class="tool-section">
+              <h3>URL 파라미터</h3>
+              <p class="tool-desc">현재 탭 URL의 쿼리 파라미터를 Payload처럼 키·값 카드로 표시합니다. 카드 순서를 바꾸면 아래 URL이 바뀝니다.</p>
+              <button type="button" id="url-params-load">현재 탭 URL 로드</button>
+              <div id="url-params-cards" class="url-params-cards"></div>
+              <div class="url-params-add-row add-row">
+                <input type="text" id="url-params-new-key" placeholder="키">
+                <input type="text" id="url-params-new-value" placeholder="값">
+                <button type="button" id="url-params-add">추가</button>
+              </div>
+              <p class="label-inout">순서 반영 URL</p>
+              <div class="url-params-output-wrap">
+                <input type="text" id="url-params-output" class="url-params-output" readonly placeholder="URL 로드 후 카드 순서를 바꾸면 여기에 표시됩니다">
+                <button type="button" id="url-params-copy" class="btn-copy" data-copy-target="url-params-output" title="복사">복사</button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-utils">
+        <div class="grid-view">
+          <button type="button" class="grid-item" data-feature-id="password-generator"><span class="grid-item-icon">🔑</span><span class="grid-item-label">비밀번호 생성</span></button>
+          <button type="button" class="grid-item" data-feature-id="lorem"><span class="grid-item-icon">📝</span><span class="grid-item-label">Lorem Ipsum</span></button>
+          <button type="button" class="grid-item" data-feature-id="jwt-decoder"><span class="grid-item-icon">🛡️</span><span class="grid-item-label">JWT 디코더</span></button>
+          <button type="button" class="grid-item" data-feature-id="unit-converter"><span class="grid-item-icon">📐</span><span class="grid-item-label">단위 변환</span></button>
+          <button type="button" class="grid-item" data-feature-id="percentage"><span class="grid-item-icon">%</span><span class="grid-item-label">퍼센트 계산</span></button>
+          <button type="button" class="grid-item" data-feature-id="qr"><span class="grid-item-icon">📱</span><span class="grid-item-label">QR 코드</span></button>
+          <button type="button" class="grid-item" data-feature-id="time"><span class="grid-item-icon">🕐</span><span class="grid-item-label">시간 변환</span></button>
+          <button type="button" class="grid-item" data-feature-id="tabs"><span class="grid-item-icon">📑</span><span class="grid-item-label">탭 관리</span></button>
+        </div>
+        <div class="feature-views">
+          <div class="feature-view" data-feature-id="password-generator">
+            <section class="tool-section">
+              <h3>비밀번호 생성</h3>
+              <p class="tool-desc">안전한 랜덤 비밀번호를 생성합니다.</p>
+              <p class="tool-hint">길이와 사용할 문자 종류를 선택하고 「생성」을 누르세요.</p>
+              <label for="pw-length">길이:</label>
+              <input type="number" id="pw-length" value="12" min="4" max="64">
+              <label>
+                <input type="checkbox" id="pw-upper" checked> 대문자 (A-Z)
+              </label>
+              <label>
+                <input type="checkbox" id="pw-lower" checked> 소문자 (a-z)
+              </label>
+              <label>
+                <input type="checkbox" id="pw-digit" checked> 숫자 (0-9)
+              </label>
+              <label>
+                <input type="checkbox" id="pw-special"> 특수문자 (!@#$ 등)
+              </label>
+              <button type="button" id="pw-generate">생성</button>
+              <div class="output-row input-row">
+                <input type="text" id="pw-output" readonly placeholder="생성된 비밀번호">
+                <button type="button" class="btn-copy" data-copy-target="pw-output" title="복사">복사</button>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="lorem">
+            <section class="tool-section">
+              <h3>Lorem Ipsum 생성</h3>
+              <p class="tool-desc">더미 텍스트를 생성합니다.</p>
+              <p class="tool-hint">단어 또는 문단 수를 지정하고 「생성」을 누르세요.</p>
+              <label for="lorem-mode">생성 단위:</label>
+              <select id="lorem-mode">
+                <option value="words">단어</option>
+                <option value="paragraphs">문단</option>
+              </select>
+              <label for="lorem-count">개수:</label>
+              <input type="number" id="lorem-count" value="5" min="1" max="100">
+              <button type="button" id="lorem-generate">생성</button>
+              <div class="output-row textarea-output">
+                <textarea id="lorem-output" readonly placeholder="생성된 Lorem Ipsum 텍스트"></textarea>
+                <button type="button" class="btn-copy" data-copy-target="lorem-output" title="복사">복사</button>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="jwt-decoder">
+            <section class="tool-section">
+              <h3>JWT 디코더</h3>
+              <p class="tool-desc">JWT(JSON Web Token)를 디코딩하여 헤더와 페이로드를 확인합니다.</p>
+              <p class="tool-hint">JWT 문자열을 입력하고 「디코드」를 누르세요. 서명 검증은 하지 않습니다.</p>
+              <label for="jwt-input">JWT 입력:</label>
+              <textarea id="jwt-input" placeholder="eyJhbGciOi..." class="code-input"></textarea>
+              <button type="button" id="jwt-decode-btn">디코드</button>
+              <label class="label-inout">Header (JSON)</label>
+              <div class="output-row textarea-output">
+                <textarea id="jwt-header" readonly placeholder="디코딩된 JWT 헤더"></textarea>
+                <button type="button" class="btn-copy" data-copy-target="jwt-header" title="복사">복사</button>
+              </div>
+              <label class="label-inout">Payload (JSON)</label>
+              <div class="output-row textarea-output">
+                <textarea id="jwt-payload" readonly placeholder="디코딩된 JWT 페이로드"></textarea>
+                <button type="button" class="btn-copy" data-copy-target="jwt-payload" title="복사">복사</button>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="unit-converter">
+            <section class="tool-section">
+              <h3>단위 변환</h3>
+              <p class="tool-desc">길이, 무게, 부피, 넓이 단위를 서로 변환합니다.</p>
+              <p class="tool-hint">카테고리와 단위를 선택한 뒤 값을 입력하면 결과가 자동으로 표시됩니다.</p>
+              <label class="label-inout">카테고리</label>
+              <select id="unit-category">
+                <option value="length">길이</option>
+                <option value="weight">무게</option>
+                <option value="volume">부피</option>
+                <option value="area">넓이</option>
+              </select>
+              <label class="label-inout">변환</label>
+              <div class="unit-row">
+                <input type="number" id="unit-value" placeholder="숫자" step="any" min="0">
+                <select id="unit-from"></select>
+                <span class="unit-arrow">→</span>
+                <input type="text" id="unit-result" class="unit-result" readonly placeholder="결과">
+                <select id="unit-to"></select>
+              </div>
+              <button type="button" class="btn-copy" data-copy-target="unit-result" title="복사">복사</button>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="percentage">
+            <section class="tool-section percent-calc">
+              <h3>퍼센트 계산</h3>
+              <p class="tool-desc">전체값의 비율, 일부값의 퍼센트, 증감값·증감률을 계산합니다.</p>
+              <div class="percent-row">
+                <input type="number" id="percent1-total" placeholder="전체값 예)10000" step="any" class="percent-input">
+                <span class="percent-conn">의</span>
+                <input type="number" id="percent1-ratio" placeholder="비율값 예)20" step="any" class="percent-input">
+                <span class="percent-conn">%는 얼마?</span>
+                <input type="text" id="percent1-result" readonly placeholder="결과" class="percent-result">
+              </div>
+              <div class="percent-row">
+                <input type="number" id="percent2-total" placeholder="전체값 예)10000" step="any" class="percent-input">
+                <span class="percent-conn">의</span>
+                <input type="number" id="percent2-part" placeholder="일부값 예)500" step="any" class="percent-input">
+                <span class="percent-conn">은 몇%?</span>
+                <input type="text" id="percent2-result" readonly placeholder="결과" class="percent-result">
+              </div>
+              <div class="percent-row">
+                <input type="number" id="percent3-from" placeholder="전체값 예)10000" step="any" class="percent-input">
+                <span class="percent-conn">이/가</span>
+                <input type="number" id="percent3-to" placeholder="증감값 예)25000" step="any" class="percent-input">
+                <span class="percent-conn">으로 변하면?</span>
+                <input type="text" id="percent3-result" readonly placeholder="결과(%)" class="percent-result">
+              </div>
+              <div class="percent-row">
+                <input type="number" id="percent4-from" placeholder="전체값 예)10000" step="any" class="percent-input">
+                <span class="percent-conn">이/가</span>
+                <input type="number" id="percent4-rate" placeholder="증감률 예)25" step="any" class="percent-input">
+                <span class="percent-conn">% 증가하면?</span>
+                <input type="text" id="percent4-result" readonly placeholder="결과" class="percent-result">
+              </div>
+              <div class="percent-actions">
+                <button type="button" id="percent-reset" class="percent-btn percent-btn-reset" title="초기화">↻ 초기화</button>
+                <button type="button" id="percent-calc" class="percent-btn percent-btn-calc">계산</button>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="qr">
+            <section class="tool-section">
+              <h3>QR 코드 생성</h3>
+              <p class="tool-desc">URL이나 짧은 텍스트를 입력하면 QR 코드 이미지로 변환합니다.</p>
+              <p class="tool-hint">텍스트 입력 후 「생성」을 누르면 아래에 QR이 나타납니다. (실제 스캔용 QR은 라이브러리 교체 시 사용 가능)</p>
+              <input type="text" id="qr-input" placeholder="예: https://example.com 또는 안녕하세요">
+              <div class="btn-group">
+                <button type="button" id="generate-qr">생성</button>
+                <button type="button" id="download-qr" title="QR 코드 이미지 저장">다운로드</button>
+              </div>
+              <div id="qrcode-container" class="qr-container"></div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="time">
+            <section class="tool-section">
+              <h3>시간 변환</h3>
+              <p class="tool-desc">Unix 타임스탬프(초/밀리초)와 읽기 쉬운 날짜·시간을 서로 변환합니다.</p>
+              <p class="tool-hint">숫자만 넣으면 → 날짜로, 날짜 문자열을 넣으면 → 타임스탬프로 변환됩니다.</p>
+              <input type="text" id="time-input" placeholder="예: 1704067200 또는 2024-01-01 00:00:00">
+              <button type="button" id="convert-time">변환</button>
+              <div id="time-output" class="time-output"></div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="tabs">
+            <section class="tool-section">
+              <h3>탭 관리</h3>
+              <p class="tool-desc">현재 창의 탭 목록을 저장해 두었다가 나중에 한 번에 다시 열거나, 같은 URL의 중복 탭을 닫습니다.</p>
+              <p class="tool-hint"><strong>탭 저장</strong> 지금 열린 탭들 URL 저장 · <strong>탭 복원</strong> 저장된 URL로 새 탭 열기 · <strong>중복 닫기</strong> 동일 URL 탭만 남기고 나머지 닫기</p>
+              <button type="button" id="save-tabs">탭 저장</button>
+              <button type="button" id="restore-tabs">탭 복원</button>
+              <button type="button" id="close-duplicates">중복 닫기</button>
+              <div id="saved-tabs-list" class="data-list"></div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-game">
+        <div class="grid-view">
+          <button type="button" class="grid-item" data-feature-id="sudoku"><span class="grid-item-icon">🔢</span><span class="grid-item-label">스도쿠</span></button>
+          <button type="button" class="grid-item" data-feature-id="puzzle15"><span class="grid-item-icon">🧩</span><span class="grid-item-label">15 퍼즐</span></button>
+          <button type="button" class="grid-item" data-feature-id="memory"><span class="grid-item-icon">🃏</span><span class="grid-item-label">카드 뒤집기</span></button>
+          <button type="button" class="grid-item" data-feature-id="tictactoe"><span class="grid-item-icon">⭕</span><span class="grid-item-label">삼목</span></button>
+          <button type="button" class="grid-item" data-feature-id="minesweeper"><span class="grid-item-icon">💣</span><span class="grid-item-label">지뢰찾기</span></button>
+          <button type="button" class="grid-item" data-feature-id="game2048"><span class="grid-item-icon">🔲</span><span class="grid-item-label">2048</span></button>
+        </div>
+        <div class="feature-views">
+          <div class="feature-view" data-feature-id="sudoku">
+            <section class="tool-section sudoku-section">
+              <h3>스도쿠</h3>
+              <p class="tool-desc">빈 칸에 1~9를 채워 가로·세로·3×3 칸 모두 1~9가 한 번씩만 나오게 하세요.</p>
+              <div class="sudoku-actions">
+                <span class="sudoku-difficulty-label">난이도:</span>
+                <label class="sudoku-difficulty-opt"><input type="radio" name="sudoku-diff" value="easy" checked> 쉬움</label>
+                <label class="sudoku-difficulty-opt"><input type="radio" name="sudoku-diff" value="medium"> 보통</label>
+                <label class="sudoku-difficulty-opt"><input type="radio" name="sudoku-diff" value="hard"> 어려움</label>
+                <button type="button" id="sudoku-new" style="display:none;">새 게임</button>
+              </div>
+              <div class="sudoku-play-area">
+                <button type="button" id="sudoku-start-btn" class="sudoku-start-btn">게임 시작</button>
+                <div id="sudoku-grid" class="sudoku-grid" style="display:none;"></div>
+              </div>
+              <div id="sudoku-message" class="sudoku-message"></div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="puzzle15">
+            <section class="tool-section game-section">
+              <h3>15 퍼즐</h3>
+              <p class="tool-desc">빈 칸 옆의 숫자를 눌러 밀어서 1~15를 순서대로 맞추세요.</p>
+              <div class="game-actions">
+                <span>난이도:</span>
+                <label><input type="radio" name="puzzle15-diff" value="easy" checked> 쉬움</label>
+                <label><input type="radio" name="puzzle15-diff" value="medium"> 보통</label>
+                <label><input type="radio" name="puzzle15-diff" value="hard"> 어려움</label>
+                <button type="button" id="puzzle15-new">새 게임</button>
+              </div>
+              <div id="puzzle15-container" class="puzzle15-wrap"></div>
+              <div id="puzzle15-message" class="game-message"></div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="memory">
+            <section class="tool-section game-section">
+              <h3>카드 뒤집기</h3>
+              <p class="tool-desc">같은 그림 쌍을 찾아 모두 뒤집으세요. 뒷면은 모두 같습니다. 두 장씩 뒤집어 본 뒤, 위치를 기억해서 짝을 맞추면 됩니다.</p>
+              <div class="game-actions">
+                <span>난이도:</span>
+                <label><input type="radio" name="memory-diff" value="easy" checked> 쉬움 (8쌍)</label>
+                <label><input type="radio" name="memory-diff" value="medium"> 보통 (10쌍)</label>
+                <label><input type="radio" name="memory-diff" value="hard"> 어려움 (12쌍)</label>
+                <button type="button" id="memory-new">새 게임</button>
+              </div>
+              <div id="memory-container" class="memory-wrap"></div>
+              <div id="memory-message" class="game-message"></div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="tictactoe">
+            <section class="tool-section game-section">
+              <h3>삼목 (O/X)</h3>
+              <p class="tool-desc">3개를 한 줄로 잇으면 승리. AI 대전 (난이도 선택).</p>
+              <div class="game-actions">
+                <span>AI 난이도:</span>
+                <label><input type="radio" name="tictactoe-diff" value="easy" checked> 쉬움</label>
+                <label><input type="radio" name="tictactoe-diff" value="hard"> 어려움</label>
+                <button type="button" id="tictactoe-new">새 게임</button>
+              </div>
+              <div id="tictactoe-container" class="tictactoe-wrap"></div>
+              <div id="tictactoe-message" class="game-message"></div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="minesweeper">
+            <section class="tool-section game-section">
+              <h3>지뢰찾기</h3>
+              <p class="tool-desc">숫자는 주변 8칸의 지뢰 개수. 빈 칸(회색)을 누르면 연결된 빈 칸이 한 번에 열립니다. 지뢰를 피해 모든 칸을 열면 승리.</p>
+              <div class="game-actions">
+                <span class="game-actions-diff-row">
+                  <span>난이도:</span>
+                  <label><input type="radio" name="minesweeper-diff" value="easy" checked> 쉬움 (9×9)</label>
+                  <label><input type="radio" name="minesweeper-diff" value="medium"> 보통 (12×12)</label>
+                  <label><input type="radio" name="minesweeper-diff" value="hard"> 어려움 (16×16)</label>
+                </span>
+                <label><input type="checkbox" id="minesweeper-flag"> 깃발</label>
+                <button type="button" id="minesweeper-new">새 게임</button>
+              </div>
+              <div id="minesweeper-container" class="minesweeper-wrap">
+                <div id="minesweeper-overlay" class="minesweeper-overlay" style="display: none;"></div>
+              </div>
+            </section>
+          </div>
+          <div class="feature-view" data-feature-id="game2048">
+            <section class="tool-section game-section">
+              <h3>2048</h3>
+              <p class="tool-desc">방향키(↑↓←→)로 타일을 밀어 같은 숫자를 합치세요. 2048을 만들면 승리!</p>
+              <div class="game-actions">
+                <span class="g2048-score-label">점수: <span id="game2048-score">0</span></span>
+                <button type="button" id="game2048-new">새 게임</button>
+              </div>
+              <div id="game2048-wrap" class="g2048-wrap">
+                <div id="game2048-container" class="g2048-grid" tabindex="0"></div>
+                <div id="game2048-overlay" class="g2048-overlay" style="display: none;"></div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-help">
+        <div class="grid-view">
+          <button type="button" class="grid-item" data-feature-id="help"><span class="grid-item-icon">📖</span><span class="grid-item-label">사용법 안내</span></button>
+        </div>
+        <div class="feature-views">
+          <div class="feature-view" data-feature-id="help">
+            <section class="help-section">
+              <h2 class="help-title">사용법 안내</h2>
+              <p class="help-intro">각 탭의 도구는 아래 순서대로 사용하면 됩니다. 결과가 나오는 도구는 「복사」 버튼으로 클립보드에 복사할 수 있습니다.</p>
+              <div class="help-block">
+                <h4>미디어</h4>
+                <ul>
+                  <li><strong>스크린샷</strong> — 캡처할 탭을 연 뒤, 보이는 영역 / 전체 페이지 / 영역 선택 중 하나를 누르면 PNG가 다운로드됩니다. 「영역 선택 (클립보드)」를 사용하면 선택 영역이 클립보드에 복사됩니다. 전체 페이지는 첫 사용 시 로딩이 걸릴 수 있습니다.</li>
+                  <li><strong>컬러 피커</strong> — 「컬러 선택」을 누른 다음, 색을 알고 싶은 웹 페이지로 가서 해당 영역을 클릭합니다. 팝업에 HEX·RGB가 표시됩니다.</li>
+                  <li><strong>이미지 추출</strong> — 「요소 선택」 후 페이지의 요소를 클릭하면, 그 요소와 하위 요소에 포함된 &lt;img&gt;와 CSS 배경 이미지 주소를 모아 보여줍니다. 복사하거나 다운로드할 수 있습니다.</li>
+                  <li><strong>화면 녹화</strong> — 탭 화면과 탭 오디오를 짧게(WebM) 녹화해 저장합니다. DRM 보호 콘텐츠나 특수 페이지에서는 제한될 수 있습니다.</li>
+                  <li><strong>이미지 최적화</strong> — 이미지 파일을 선택하고, 품질(슬라이더)을 정한 뒤 「최적화」를 누르면 JPEG로 저장됩니다.</li>
+                  <li><strong>이미지 Base64</strong> — 이미지 파일을 선택하면 data URL(Base64) 문자열이 표시됩니다. 복사 버튼으로 클립보드에 넣을 수 있습니다.</li>
+                </ul>
+              </div>
+              <div class="help-block">
+                <h4>텍스트</h4>
+                <ul>
+                  <li><strong>URL / Base64</strong> — 입력 칸에 텍스트를 넣고 「인코드」 또는 「디코드」를 누릅니다. 결과 칸 옆 「복사」로 복사할 수 있습니다.</li>
+                  <li><strong>JSON</strong> — JSON 문자열을 넣고 포맷(들여쓰기), 미니파이(한 줄), 검증(문법 확인) 중 원하는 버튼을 누릅니다.</li>
+                  <li><strong>텍스트 변환</strong> — 영문 텍스트를 넣고 대문자, 소문자, CamelCase, snake_case, kebab-case 중 하나를 선택하면 결과가 나옵니다.</li>
+                  <li><strong>해시</strong> — 알고리즘(SHA-256/SHA-512)을 선택하고 텍스트를 입력한 뒤 「생성」을 누르면 해시 값이 나옵니다.</li>
+                  <li><strong>코드 미니파이어</strong> — CSS/JS 선택 후 코드를 붙여넣거나 스크립트·스타일 URL을 입력하세요. 「미니파이」는 한 줄로 압축, 「뷰티파이」는 줄바꿈·들여쓰기로 읽기 쉽게 만듭니다.</li>
+                  <li><strong>정규식 테스터</strong> — 패턴과 플래그(g/i/m 등), 테스트 문자열을 입력한 뒤 「테스트」를 누르면 매칭 여부·캡처 그룹이 표시됩니다.</li>
+                  <li><strong>Compare</strong> — 두 텍스트(또는 JSON)를 넣고 「비교」를 누르면 줄 단위로 추가/삭제/동일이 하이라이트됩니다. JSON 모드에서는 포맷 후 비교합니다.</li>
+                </ul>
+              </div>
+              <div class="help-block">
+                <h4>개발</h4>
+                <ul>
+                  <li><strong>쿠키·스토리지</strong> — 확인할 사이트가 열린 탭을 활성화한 뒤 「쿠키 로드」 또는 저장소 종류 선택 후 「로드」를 누릅니다. 항목별 수정·삭제, 새 키/쿠키 추가가 가능합니다.</li>
+                  <li><strong>URL 파라미터</strong> — 「현재 탭 URL 로드」를 누르면 쿼리 스트링이 키·값 카드로 표시됩니다. 카드를 드래그해 순서를 바꾸면 아래에 반영된 URL이 갱신되며, 「복사」로 복사할 수 있습니다.</li>
+                  <li><strong>User-Agent</strong> — UA 문자열을 넣고 「파싱」을 누르면 브라우저·OS·기기 유형이 요약됩니다. 비워 두면 현재 브라우저 UA가 사용됩니다.</li>
+                  <li><strong>요소 선택기</strong> — 「요소 선택 모드」 후 페이지에서 Inspect 하고 싶은 요소를 클릭하면 태그·크기·스타일 정보가 표시됩니다.</li>
+                  <li><strong>네트워크 모니터</strong> — 「모니터 시작」 후 브라우저 사용 시 발생하는 요청이 목록에 쌓입니다. 「초기화」로 비울 수 있습니다.</li>
+                  <li><strong>성능 메트릭·접근성 검사</strong> — 측정/검사할 페이지 탭을 연 뒤 각각 「측정」「검사 실행」을 누릅니다.</li>
+                </ul>
+              </div>
+              <div class="help-block">
+                <h4>기타</h4>
+                <ul>
+                  <li><strong>비밀번호 생성</strong> — 길이와 대문자/소문자/숫자/특수문자 옵션을 선택한 뒤 「생성」을 누르면 안전한 랜덤 비밀번호가 나옵니다.</li>
+                  <li><strong>Lorem Ipsum</strong> — 단어 수 또는 문단 수를 지정하고 「생성」을 누르면 더미 텍스트가 생성됩니다.</li>
+                  <li><strong>JWT 디코더</strong> — JWT 문자열을 붙여넣고 「디코드」를 누르면 헤더·페이로드가 JSON으로 표시됩니다. 서명 검증은 하지 않습니다.</li>
+                  <li><strong>단위 변환</strong> — 길이·무게·부피·넓이 카테고리와 단위를 선택한 뒤 값을 입력하면 결과가 표시됩니다.</li>
+                  <li><strong>퍼센트 계산</strong> — 전체값의 비율값·일부값의 %, 증감값·증감률을 입력한 뒤 「계산」을 누르면 결과가 나옵니다.</li>
+                  <li><strong>QR 코드</strong> — URL 또는 텍스트를 입력하고 「생성」을 누르면 QR 이미지가 나타납니다.</li>
+                  <li><strong>시간 변환</strong> — 타임스탬프(숫자)를 넣으면 날짜로, 날짜 문자열을 넣으면 타임스탬프로 변환됩니다.</li>
+                  <li><strong>탭 관리</strong> — 「탭 저장」으로 현재 탭 목록 저장, 「탭 복원」으로 저장된 탭 다시 열기, 「중복 닫기」로 같은 URL 탭만 남깁니다.</li>
+                </ul>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <a href="https://www.flaticon.com/kr/free-icons/-" target="_blank" rel="noopener noreferrer" title="제품 검색 아이콘">제품 검색 아이콘 제작자: Design Circle - Flaticon</a>
+    </footer>
+    <div id="toast" class="toast" aria-live="polite"></div>
+  </div>
+  <script src="libs/qrcode.min.js"></script>
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
