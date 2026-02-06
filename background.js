@@ -145,6 +145,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     });
   }
+  if (request.action === 'imagesExtracted' && (request.images || request.target !== undefined)) {
+    chrome.storage.local.set({
+      imageExtractResult: {
+        images: request.images || [],
+        target: request.target || null
+      }
+    });
+  }
   return false;
 });
 

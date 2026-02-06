@@ -224,6 +224,7 @@ function setupGridAndBackButton() {
       if (featureId && panel) {
         currentFeatureId = featureId;
         showFeatureView(panel, featureId);
+        if (featureId === 'image-extract' && typeof window.loadImageExtractResultFromStorage === 'function') window.loadImageExtractResultFromStorage();
         if (featureId === 'clip-record') updateClipRecordAvailability();
         if (panel.id === 'panel-game' && GAME_REGISTRY[featureId]) GAME_REGISTRY[featureId].init({ safeOn });
         showBackButton();
@@ -710,7 +711,17 @@ function setupMediaTools() {
       listEl.innerHTML = '<p>추출된 이미지가 없습니다. 요소를 선택해 주세요.</p>';
     }
     if (targetEl) targetEl.textContent = '선택된 요소 없음';
+    chrome.storage.local.remove('imageExtractResult');
   });
+
+  function loadImageExtractResultFromStorage() {
+    chrome.storage.local.get('imageExtractResult', (data) => {
+      if (data.imageExtractResult && (data.imageExtractResult.images || data.imageExtractResult.target !== undefined)) {
+        renderImageExtractResult(data.imageExtractResult);
+      }
+    });
+  }
+  window.loadImageExtractResultFromStorage = loadImageExtractResultFromStorage;
 
   safeOn('image-extract-pick', 'click', async () => {
     const tab = await getCurrentTab();
@@ -1529,6 +1540,7 @@ function init() {
       if (featureEl) {
         currentFeatureId = savedFeature;
         showFeatureView(panel, savedFeature);
+        if (savedFeature === 'image-extract' && typeof window.loadImageExtractResultFromStorage === 'function') window.loadImageExtractResultFromStorage();
         if (savedFeature === 'clip-record') updateClipRecordAvailability();
         if (panel.id === 'panel-game' && GAME_REGISTRY[savedFeature]) GAME_REGISTRY[savedFeature].init({ safeOn });
         showBackButton();
