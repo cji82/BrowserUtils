@@ -1,0 +1,10 @@
+{
+  "name": "browserutils",
+  "version": "1.0.0",
+  "description": "Chrome extension - developer tools",
+  "private": true,
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\""
+  },
+  "type": "module"
+}

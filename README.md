@@ -78,6 +78,23 @@
 
 ---
 
+## 테스트
+
+주요 모듈(인코더, JSON, 텍스트 변환, 퍼센트, 시간, 정규식, 단위 변환, 비밀번호, JWT, Lorem, 이미지 추출 storage 계약)에 대한 단위 테스트가 `tests/`에 있습니다.  
+개발 시 회귀 방지를 위해 수정 후 테스트를 실행하는 것을 권장합니다.
+
+```bash
+npm test
+```
+
+또는 (Node 18+):
+
+```bash
+node --test "tests/*.test.js"
+```
+
+---
+
 ## 프로젝트 구조 (요약)
 
 ```
@@ -95,6 +112,7 @@ BrowserUtils/
 │   └── easter_egg/    # 게임 등 추가 기능
 ├── clip-recorder.html / clip-recorder.js  # 화면 녹화
 ├── diff-viewer.html   # Compare 크게 보기
+├── tests/             # 단위 테스트 (*.test.js)
 └── README.md
 ```
 
