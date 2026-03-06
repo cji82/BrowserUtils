@@ -862,6 +862,9 @@ select {
 }
 
 /* Sudoku */
+.sudoku-section {
+  position: relative;
+}
 .sudoku-section .tool-desc { margin-bottom: 10px; }
 .sudoku-actions {
   display: flex;
@@ -942,15 +945,83 @@ select {
 .sudoku-cell.user { color: #0969da; }
 .sudoku-cell.conflict { color: #cf2222 !important; }
 .sudoku-cell.error { background: #ffebe9; color: #cf2222; }
+.sudoku-cell.sudoku-highlight-row,
+.sudoku-cell.sudoku-highlight-col,
+.sudoku-cell.sudoku-highlight-box {
+  background: #f0f6ff;
+}
+.sudoku-cell.sudoku-selected {
+  background: #c6e6ff;
+}
 .sudoku-message {
-  margin-top: 10px;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+  z-index: 5;
+}
+.sudoku-message.success,
+.sudoku-message.fail {
+  opacity: 1;
+  pointer-events: auto;
+}
+.sudoku-message.success { color: #bbf7d0; }
+.sudoku-message.fail { color: #fecaca; }
+.sudoku-modal-actions {
+  margin-top: 12px;
+}
+.sudoku-modal-btn {
+  margin-top: 4px;
+  padding: 6px 14px;
   font-size: 13px;
   font-weight: 600;
-  text-align: center;
-  min-height: 20px;
+  border-radius: 999px;
+  border: none;
+  background: #22c55e;
+  color: #fff;
+  cursor: pointer;
 }
-.sudoku-message.success { color: #1a7f37; }
-.sudoku-message.fail { color: #cf2222; }
+.sudoku-modal-btn:hover {
+  background: #16a34a;
+}
+.sudoku-keypad {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+  max-width: min(276px, 80vw);
+  margin-left: auto;
+  margin-right: auto;
+}
+.sudoku-key {
+  padding: 0;
+  border-radius: 0;
+  font-size: 14px;
+  font-weight: 600;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+}
+.sudoku-key:hover:not(:disabled) {
+  background: #e8eaed;
+}
+.sudoku-key:disabled {
+  background: #e1e4e8;
+  color: #8c959f;
+  border-color: #8c959f;
+  box-shadow: inset 0 0 0 1px #8c959f;
+}
 
 /* 공통 게임 섹션 */
 .game-section .tool-desc { margin-bottom: 10px; }

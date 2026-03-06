@@ -125,7 +125,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         el.setAttribute('data-browserutils-a11y-style', style);
         el.style.setProperty('outline', '3px solid #cb2431', 'important');
         el.style.setProperty('outline-offset', '2px', 'important');
+        const originalTabindex = el.getAttribute('tabindex');
+        el.setAttribute('data-browserutils-a11y-tabindex', originalTabindex != null ? originalTabindex : '');
+        if (el.tabIndex < 0 && !el.hasAttribute('tabindex')) {
+          el.setAttribute('tabindex', '-1');
+        }
+        setTimeout(() => {
+          try {
+            el.focus({ preventScroll: true });
+          } catch (_) {
+            try { el.focus(); } catch (_) {}
+          }
+        }, 60);
         showAccessibilityIssueLabel(el, message || '접근성 이슈');
+        showAccessibilityOverlay(el);
       }
     }
     sendResponse({ ok: true });
@@ -599,6 +612,7 @@ function collectImagesFromElement(el) {
 }
 
 let a11yLabelEl = null;
+let a11yOverlayEl = null;
 
 function clearAccessibilityHighlight() {
   document.querySelectorAll('[data-browserutils-a11y-highlight="1"]').forEach(el => {
@@ -606,9 +620,20 @@ function clearAccessibilityHighlight() {
     const saved = el.getAttribute('data-browserutils-a11y-style');
     el.removeAttribute('data-browserutils-a11y-style');
     el.style.cssText = saved || '';
+    const savedTabindex = el.getAttribute('data-browserutils-a11y-tabindex');
+    el.removeAttribute('data-browserutils-a11y-tabindex');
+    if (savedTabindex !== null) {
+      if (savedTabindex === '') {
+        el.removeAttribute('tabindex');
+      } else {
+        el.setAttribute('tabindex', savedTabindex);
+      }
+    }
   });
   if (a11yLabelEl && a11yLabelEl.parentNode) a11yLabelEl.parentNode.removeChild(a11yLabelEl);
   a11yLabelEl = null;
+  if (a11yOverlayEl && a11yOverlayEl.parentNode) a11yOverlayEl.parentNode.removeChild(a11yOverlayEl);
+  a11yOverlayEl = null;
 }
 
 function showAccessibilityIssueLabel(element, message) {
@@ -626,6 +651,89 @@ function showAccessibilityIssueLabel(element, message) {
   };
   window.addEventListener('scroll', scrollHandler, true);
   setTimeout(() => window.removeEventListener('scroll', scrollHandler, true), 5000);
+}
+
+function showAccessibilityOverlay(element) {
+  if (a11yOverlayEl && a11yOverlayEl.parentNode) a11yOverlayEl.parentNode.removeChild(a11yOverlayEl);
+  let target = element;
+  let rect = target.getBoundingClientRect();
+  const isTooSmallOrOffscreen = (r) => {
+    const tooSmall = r.width < 8 || r.height < 8;
+    const offscreen = r.bottom < 0 || r.top > window.innerHeight;
+    return tooSmall || offscreen;
+  };
+  let guard = 0;
+  while (target.parentElement && isTooSmallOrOffscreen(rect) && guard < 10) {
+    target = target.parentElement;
+    rect = target.getBoundingClientRect();
+    guard++;
+  }
+  const overlay = document.createElement('div');
+  overlay.setAttribute('data-browserutils-a11y-overlay', '1');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483646;pointer-events:auto;';
+
+  const dimStyleBase = 'position:fixed;background:rgba(0,0,0,0.55);pointer-events:none;';
+  const topDim = document.createElement('div');
+  topDim.style.cssText = dimStyleBase + 'left:0;top:0;width:100%;height:' + Math.max(0, rect.top) + 'px;';
+  const bottomDim = document.createElement('div');
+  bottomDim.style.cssText = dimStyleBase + 'left:0;top:' + (rect.bottom) + 'px;width:100%;height:' + Math.max(0, window.innerHeight - rect.bottom) + 'px;';
+  const leftDim = document.createElement('div');
+  leftDim.style.cssText = dimStyleBase + 'left:0;top:' + rect.top + 'px;width:' + Math.max(0, rect.left) + 'px;height:' + Math.max(0, rect.height) + 'px;';
+  const rightDim = document.createElement('div');
+  rightDim.style.cssText = dimStyleBase + 'left:' + rect.right + 'px;top:' + rect.top + 'px;width:' + Math.max(0, window.innerWidth - rect.right) + 'px;height:' + Math.max(0, rect.height) + 'px;';
+
+  const frame = document.createElement('div');
+  frame.style.cssText =
+    'position:fixed;' +
+    'left:' + (rect.left - 4) + 'px;' +
+    'top:' + (rect.top - 4) + 'px;' +
+    'width:' + (rect.width + 8) + 'px;' +
+    'height:' + (rect.height + 8) + 'px;' +
+    'border-radius:6px;' +
+    'box-shadow:0 0 0 3px #f97316,0 0 0 7px rgba(0,0,0,0.4);' +
+    'pointer-events:none;';
+
+  overlay.appendChild(topDim);
+  overlay.appendChild(bottomDim);
+  overlay.appendChild(leftDim);
+  overlay.appendChild(rightDim);
+  overlay.appendChild(frame);
+
+  document.body.appendChild(overlay);
+  a11yOverlayEl = overlay;
+
+  overlay.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    clearAccessibilityHighlight();
+  }, true);
+
+  const update = () => {
+    const r = element.getBoundingClientRect();
+    topDim.style.height = Math.max(0, r.top) + 'px';
+    bottomDim.style.top = r.bottom + 'px';
+    bottomDim.style.height = Math.max(0, window.innerHeight - r.bottom) + 'px';
+    leftDim.style.top = r.top + 'px';
+    leftDim.style.width = Math.max(0, r.left) + 'px';
+    leftDim.style.height = Math.max(0, r.height) + 'px';
+    rightDim.style.left = r.right + 'px';
+    rightDim.style.top = r.top + 'px';
+    rightDim.style.width = Math.max(0, window.innerWidth - r.right) + 'px';
+    rightDim.style.height = Math.max(0, r.height) + 'px';
+    frame.style.left = (r.left - 4) + 'px';
+    frame.style.top = (r.top - 4) + 'px';
+    frame.style.width = (r.width + 8) + 'px';
+    frame.style.height = (r.height + 8) + 'px';
+  };
+
+  const onScrollOrResize = () => update();
+  window.addEventListener('scroll', onScrollOrResize, true);
+  window.addEventListener('resize', onScrollOrResize, true);
+  update();
+  setTimeout(() => {
+    window.removeEventListener('scroll', onScrollOrResize, true);
+    window.removeEventListener('resize', onScrollOrResize, true);
+  }, 5000);
 }
 
 function runAccessibilityCheck() {

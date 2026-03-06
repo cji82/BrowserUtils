@@ -5,6 +5,7 @@
 
 let currentSudokuSolution = '';
 let sudokuInitialized = false;
+let sudokuSelectedIndex = null;
 
 function shuffleArray(arr) {
   const a = [...arr];
@@ -89,6 +90,63 @@ function getSudokuGridState() {
   return cells.length === 81 ? cells.map(c => c.value || '0').join('') : '';
 }
 
+function getSudokuDigitCounts() {
+  const state = getSudokuGridState();
+  const counts = Array(10).fill(0);
+  if (state.length !== 81) return counts;
+  for (const ch of state) {
+    const d = +ch;
+    if (d >= 1 && d <= 9) counts[d]++;
+  }
+  return counts;
+}
+
+function updateSudokuKeypad() {
+  const keypad = document.getElementById('sudoku-keypad');
+  if (!keypad) return;
+  const counts = getSudokuDigitCounts();
+  const buttons = keypad.querySelectorAll('.sudoku-key');
+  buttons.forEach((btn) => {
+    const v = btn.dataset.value;
+    if (!v) return;
+    const n = +v;
+    const usedUp = counts[n] >= 9;
+    btn.disabled = usedUp;
+    btn.title = usedUp ? '이 숫자는 9칸 모두 사용되었습니다' : '';
+  });
+}
+
+function updateSudokuSelection(index) {
+  const cells = getSudokuCellsByIndex();
+  if (cells.length !== 81) {
+    sudokuSelectedIndex = null;
+    return;
+  }
+  cells.forEach((c) => {
+    c.classList.remove('sudoku-selected', 'sudoku-highlight-row', 'sudoku-highlight-col', 'sudoku-highlight-box');
+  });
+  if (index == null || index < 0 || index >= 81) {
+    sudokuSelectedIndex = null;
+    return;
+  }
+  sudokuSelectedIndex = index;
+  const row = (i) => Math.floor(i / 9);
+  const col = (i) => i % 9;
+  const boxStart = (i) => 27 * Math.floor(row(i) / 3) + 3 * Math.floor(col(i) / 3);
+  const targetRow = row(index);
+  const targetCol = col(index);
+  const targetBoxStart = boxStart(index);
+  for (let i = 0; i < 81; i++) {
+    const cell = cells[i];
+    if (!cell) continue;
+    if (row(i) === targetRow) cell.classList.add('sudoku-highlight-row');
+    if (col(i) === targetCol) cell.classList.add('sudoku-highlight-col');
+    if (boxStart(i) === targetBoxStart) cell.classList.add('sudoku-highlight-box');
+  }
+  const selectedCell = cells[index];
+  if (selectedCell) selectedCell.classList.add('sudoku-selected');
+}
+
 function highlightSudokuConflicts() {
   const cells = getSudokuCellsByIndex();
   if (cells.length !== 81) return;
@@ -116,6 +174,13 @@ function highlightSudokuConflicts() {
   }
 }
 
+function hideSudokuMessage() {
+  const msg = document.getElementById('sudoku-message');
+  if (!msg) return;
+  msg.className = 'sudoku-message';
+  msg.textContent = '';
+}
+
 function checkSudoku() {
   const msg = document.getElementById('sudoku-message');
   const grid = document.getElementById('sudoku-grid');
@@ -124,8 +189,22 @@ function checkSudoku() {
   if (state.length !== 81) return;
   grid.querySelectorAll('.sudoku-cell').forEach(c => c.classList.remove('error', 'conflict'));
   if (state === currentSudokuSolution) {
-    msg.innerHTML = '정답입니다! <img class="emoji-icon" src="img/emoji/1f389.svg" alt="">';
+    msg.innerHTML = ''
+      + '<div>'
+      +   '정답입니다! <img class="emoji-icon" src="img/emoji/1f389.svg" alt="">'
+      +   '<div class="sudoku-modal-actions">'
+      +     '<button type="button" class="sudoku-modal-btn" id="sudoku-modal-new">새 게임</button>'
+      +   '</div>'
+      + '</div>';
     msg.className = 'sudoku-message success';
+    const btn = document.getElementById('sudoku-modal-new');
+    if (btn) {
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        hideSudokuMessage();
+        startSudokuGame();
+      }, { once: true });
+    }
     return;
   }
   msg.textContent = '틀린 칸이 있어요. 빨간 칸을 확인해 보세요.';
@@ -156,6 +235,7 @@ function buildSudokuGrid(puzzle, solution, restoreState) {
   const msg = document.getElementById('sudoku-message');
   const startBtn = document.getElementById('sudoku-start-btn');
   const newBtn = document.getElementById('sudoku-new');
+  const keypad = document.getElementById('sudoku-keypad');
   if (!grid) return;
   if (msg) { msg.textContent = ''; msg.className = 'sudoku-message'; }
   grid.innerHTML = '';
@@ -188,8 +268,15 @@ function buildSudokuGrid(puzzle, solution, restoreState) {
             highlightSudokuConflicts();
             trySudokuAutoCheck();
             saveSudokuState();
+            updateSudokuKeypad();
           });
         }
+        cell.addEventListener('focus', () => {
+          updateSudokuSelection(i);
+        });
+        cell.addEventListener('click', () => {
+          updateSudokuSelection(i);
+        });
         blockDiv.appendChild(cell);
       }
     }
@@ -206,6 +293,8 @@ function buildSudokuGrid(puzzle, solution, restoreState) {
   if (grid) grid.style.display = 'grid';
   if (newBtn) newBtn.style.display = 'inline-block';
   highlightSudokuConflicts();
+  updateSudokuKeypad();
+  if (keypad) keypad.style.display = 'grid';
 }
 
 function startSudokuGame() {
@@ -226,11 +315,38 @@ function resetSudokuToStart() {
   const startBtn = document.getElementById('sudoku-start-btn');
   const newBtn = document.getElementById('sudoku-new');
   const msg = document.getElementById('sudoku-message');
+   const keypad = document.getElementById('sudoku-keypad');
   if (grid) { grid.innerHTML = ''; grid.style.display = 'none'; }
   if (startBtn) startBtn.style.display = 'block';
   if (newBtn) newBtn.style.display = 'none';
   if (msg) { msg.textContent = ''; msg.className = 'sudoku-message'; }
+  if (keypad) keypad.style.display = 'none';
   chrome.storage.local.set({ sudokuActive: false });
+}
+
+function setupSudokuKeypad() {
+  const keypad = document.getElementById('sudoku-keypad');
+  if (!keypad || keypad.dataset.bound === '1') return;
+  keypad.dataset.bound = '1';
+  keypad.addEventListener('click', (ev) => {
+    const target = ev.target;
+    if (!(target instanceof HTMLButtonElement)) return;
+    const value = target.dataset.value;
+    if (!value || target.disabled) return;
+    const cells = getSudokuCellsByIndex();
+    if (cells.length !== 81) return;
+    const index = sudokuSelectedIndex;
+    if (index == null || index < 0 || index >= 81) return;
+    const cell = cells[index];
+    if (!cell || cell.readOnly) return;
+    cell.value = value;
+    cell.classList.remove('error');
+    highlightSudokuConflicts();
+    trySudokuAutoCheck();
+    saveSudokuState();
+    updateSudokuKeypad();
+    cell.focus();
+  });
 }
 
 function restoreSudokuGame() {
@@ -253,6 +369,15 @@ function init(api) {
   sudokuInitialized = true;
   safeOn('sudoku-start-btn', 'click', () => startSudokuGame());
   safeOn('sudoku-new', 'click', () => resetSudokuToStart());
+  setupSudokuKeypad();
+  const msg = document.getElementById('sudoku-message');
+  if (msg && !msg.dataset.bound) {
+    msg.dataset.bound = '1';
+    msg.addEventListener('click', (ev) => {
+      // 배경 클릭 시 모달 닫기 (버튼 클릭은 그대로 통과)
+      if (ev.target === msg) hideSudokuMessage();
+    });
+  }
   restoreSudokuGame();
 }
 
